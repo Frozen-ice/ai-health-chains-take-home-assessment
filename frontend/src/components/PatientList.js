@@ -55,6 +55,19 @@ const PatientList = ({ onSelectPatient }) => {
     setSearchTerm(e.target.value);
   };
 
+  // Handle pagination
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination && currentPage < pagination.totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
   if (loading) {
     return (
       <div className="patient-list-container">
@@ -128,11 +141,23 @@ const PatientList = ({ onSelectPatient }) => {
         )}
       </div>
 
-      {/* TODO: Implement pagination controls */}
-      {/* Show pagination buttons if pagination data is available */}
       {pagination && (
         <div className="pagination">
-          {/* Your pagination implementation here */}
+          <button
+            onClick={handlePreviousPage}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <div className="pagination-info">
+            Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
+          </div>
+          <button
+            onClick={handleNextPage}
+            disabled={currentPage >= pagination.totalPages}
+          >
+            Next
+          </button>
         </div>
       )}
     </div>
