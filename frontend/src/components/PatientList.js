@@ -17,12 +17,19 @@ const PatientList = ({ onSelectPatient }) => {
   // 3. Update the pagination state
   // 4. Handle loading and error states
   const fetchPatients = async () => {
-    // Your implementation here
     setLoading(true);
+    setError(null);
     try {
-      // TODO: Call API and update state
+      const limit = 10;
+      const response = await apiService.getPatients(currentPage, limit, searchTerm);
+      
+      // Update patients state with response data
+      setPatients(response.patients || []);
+      
+      // Update pagination state
+      setPagination(response.pagination || null);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to fetch patients');
     } finally {
       setLoading(false);
     }
