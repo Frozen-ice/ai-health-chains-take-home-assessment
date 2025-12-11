@@ -1,47 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './TransactionHistory.css';
 import { apiService } from '../services/apiService';
+import { formatAddress, formatDateTime } from '../utils/formatters';
+import Loading from './common/Loading';
+import Error from './common/Error';
+import EmptyState from './common/EmptyState';
 
 const TransactionHistory = ({ account }) => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Call apiService.getTransactions with account address if available
-        const walletAddress = account || null;
-        const response = await apiService.getTransactions(walletAddress, 20);
-        
-        // Update transactions state
-        setTransactions(response.transactions || []);
-      } catch (err) {
-        setError(err.message || 'Failed to fetch transactions');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTransactions();
+  const fetchTransactions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const walletAddress = account || null;
+      const response = await apiService.getTransactions(walletAddress, 20);
+      setTransactions(response.transactions || []);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch transactions');
+    } finally {
+      setLoading(false);
+    }
   }, [account]);
 
-  const formatAddress = (address) => {
-    if (!address) return '';
-    return `${address.slice(0, 8)}...${address.slice(-6)}`;
-  };
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return '';
-    return new Date(timestamp).toLocaleString();
-  };
+  const formattedAccount = useMemo(() => formatAddress(account), [account]);
 
   if (loading) {
     return (
       <div className="transaction-history-container">
-        <div className="loading">Loading transactions...</div>
+        <Loading message="Loading transactions..." />
       </div>
     );
   }
@@ -49,7 +42,7 @@ const TransactionHistory = ({ account }) => {
   if (error) {
     return (
       <div className="transaction-history-container">
-        <div className="error">Error: {error}</div>
+        <Error message={error} onRetry={fetchTransactions} />
       </div>
     );
   }
@@ -60,16 +53,14 @@ const TransactionHistory = ({ account }) => {
         <h2>Transaction History</h2>
         {account && (
           <div className="wallet-filter">
-            Filtering for: {formatAddress(account)}
+            Filtering for: {formattedAccount}
           </div>
         )}
       </div>
 
       <div className="transactions-list">
         {transactions.length === 0 ? (
-          <div className="placeholder">
-            <p>No transactions found</p>
-          </div>
+          <EmptyState message="No transactions found" />
         ) : (
           transactions.map((transaction) => (
             <div key={transaction.id} className="transaction-card">
@@ -103,7 +94,7 @@ const TransactionHistory = ({ account }) => {
                 <div className="transaction-detail-item">
                   <div className="transaction-detail-label">Timestamp</div>
                   <div className="transaction-timestamp">
-                    {formatDate(transaction.timestamp)}
+                    {formatDateTime(transaction.timestamp)}
                   </div>
                 </div>
                 {transaction.blockchainTxHash && (

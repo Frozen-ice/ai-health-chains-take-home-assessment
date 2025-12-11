@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './PatientDetail.css';
 import { apiService } from '../services/apiService';
+import { formatDate, getRecordTypeClass } from '../utils/formatters';
+import Loading from './common/Loading';
+import Error from './common/Error';
+import EmptyState from './common/EmptyState';
 
 const PatientDetail = ({ patientId, onBack }) => {
   const [patient, setPatient] = useState(null);
@@ -8,36 +12,34 @@ const PatientDetail = ({ patientId, onBack }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchPatientData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Fetch patient data and records in parallel
-        const [patientData, recordsData] = await Promise.all([
-          apiService.getPatient(patientId),
-          apiService.getPatientRecords(patientId)
-        ]);
-        
-        // Update state with fetched data
-        setPatient(patientData);
-        setRecords(recordsData.records || []);
-      } catch (err) {
-        setError(err.message || 'Failed to load patient data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (patientId) {
-      fetchPatientData();
+  const fetchPatientData = useCallback(async () => {
+    if (!patientId) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const [patientData, recordsData] = await Promise.all([
+        apiService.getPatient(patientId),
+        apiService.getPatientRecords(patientId)
+      ]);
+      
+      setPatient(patientData);
+      setRecords(recordsData.records || []);
+    } catch (err) {
+      setError(err.message || 'Failed to load patient data');
+    } finally {
+      setLoading(false);
     }
   }, [patientId]);
+
+  useEffect(() => {
+    fetchPatientData();
+  }, [fetchPatientData]);
 
   if (loading) {
     return (
       <div className="patient-detail-container">
-        <div className="loading">Loading patient details...</div>
+        <Loading message="Loading patient details..." />
       </div>
     );
   }
@@ -45,7 +47,7 @@ const PatientDetail = ({ patientId, onBack }) => {
   if (error || !patient) {
     return (
       <div className="patient-detail-container">
-        <div className="error">Error loading patient: {error || 'Patient not found'}</div>
+        <Error message={error || 'Patient not found'} onRetry={fetchPatientData} />
         <button onClick={onBack} className="back-btn">Back to List</button>
       </div>
     );
@@ -75,7 +77,7 @@ const PatientDetail = ({ patientId, onBack }) => {
             </div>
             <div className="info-item">
               <div className="info-label">Date of Birth</div>
-              <div className="info-value">{new Date(patient.dateOfBirth).toLocaleDateString()}</div>
+              <div className="info-value">{formatDate(patient.dateOfBirth)}</div>
             </div>
             <div className="info-item">
               <div className="info-label">Gender</div>
@@ -99,20 +101,14 @@ const PatientDetail = ({ patientId, onBack }) => {
         <div className="patient-records-section">
           <h2>Medical Records ({records.length})</h2>
           {records.length === 0 ? (
-            <div className="placeholder">
-              <p>No medical records found for this patient</p>
-            </div>
+            <EmptyState message="No medical records found for this patient" />
           ) : (
             <div className="records-list">
               {records.map((record) => (
                 <div key={record.id} className="record-card">
                   <div className="record-header">
                     <div className="record-title">{record.title}</div>
-                    <span className={`record-type ${
-                      record.type.toLowerCase().includes('lab') ? 'lab' :
-                      record.type.toLowerCase().includes('treatment') ? 'treatment' :
-                      'diagnostic'
-                    }`}>
+                    <span className={`record-type ${getRecordTypeClass(record.type)}`}>
                       {record.type}
                     </span>
                   </div>
@@ -120,7 +116,7 @@ const PatientDetail = ({ patientId, onBack }) => {
                   <div className="record-meta">
                     <div className="record-meta-item">
                       <span>📅</span>
-                      <span>{new Date(record.date).toLocaleDateString()}</span>
+                      <span>{formatDate(record.date)}</span>
                     </div>
                     <div className="record-meta-item">
                       <span>👨‍⚕️</span>

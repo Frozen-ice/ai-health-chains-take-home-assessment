@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './ConsentManagement.css';
 import { apiService } from '../services/apiService';
 import { useWeb3 } from '../hooks/useWeb3';
+import { formatDateTime } from '../utils/formatters';
+import Loading from './common/Loading';
+import EmptyState from './common/EmptyState';
 
 const ConsentManagement = ({ account }) => {
   const { signMessage } = useWeb3();
@@ -15,28 +18,25 @@ const ConsentManagement = ({ account }) => {
     purpose: '',
   });
 
-  useEffect(() => {
-    const fetchConsents = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Call apiService.getConsents with status filter (or null for 'all')
-        const status = filterStatus === 'all' ? null : filterStatus;
-        const response = await apiService.getConsents(null, status);
-        
-        // Update consents state
-        setConsents(response.consents || []);
-      } catch (err) {
-        setError(err.message || 'Failed to fetch consents');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchConsents();
+  const fetchConsents = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const status = filterStatus === 'all' ? null : filterStatus;
+      const response = await apiService.getConsents(null, status);
+      setConsents(response.consents || []);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch consents');
+    } finally {
+      setLoading(false);
+    }
   }, [filterStatus]);
 
-  const handleCreateConsent = async (e) => {
+  useEffect(() => {
+    fetchConsents();
+  }, [fetchConsents]);
+
+  const handleCreateConsent = useCallback(async (e) => {
     e.preventDefault();
     if (!account) {
       alert('Please connect your wallet first');
@@ -44,13 +44,9 @@ const ConsentManagement = ({ account }) => {
     }
 
     try {
-      // Create a message to sign
       const message = `I consent to: ${formData.purpose} for patient: ${formData.patientId}`;
-      
-      // Sign the message using signMessage from useWeb3 hook
       const signature = await signMessage(message);
       
-      // Call apiService.createConsent with patientId, purpose, account, and signature
       await apiService.createConsent({
         patientId: formData.patientId,
         purpose: formData.purpose,
@@ -58,43 +54,33 @@ const ConsentManagement = ({ account }) => {
         signature: signature
       });
       
-      // Refresh consents and reset form
       setFormData({ patientId: '', purpose: '' });
       setShowCreateForm(false);
-      
-      // Refetch consents to show the new one
-      const status = filterStatus === 'all' ? null : filterStatus;
-      const response = await apiService.getConsents(null, status);
-      setConsents(response.consents || []);
+      await fetchConsents();
     } catch (err) {
       alert('Failed to create consent: ' + err.message);
     }
-  };
+  }, [account, formData, signMessage, fetchConsents]);
 
-  const handleUpdateStatus = async (consentId, newStatus) => {
+  const handleUpdateStatus = useCallback(async (consentId, newStatus) => {
     try {
-      // Generate a mock blockchain transaction hash (in real app, this would come from blockchain)
       const blockchainTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
       
-      // Call apiService.updateConsent to update the status
       await apiService.updateConsent(consentId, {
         status: newStatus,
         blockchainTxHash: blockchainTxHash
       });
       
-      // Refresh consents list
-      const status = filterStatus === 'all' ? null : filterStatus;
-      const response = await apiService.getConsents(null, status);
-      setConsents(response.consents || []);
+      await fetchConsents();
     } catch (err) {
       alert('Failed to update consent: ' + err.message);
     }
-  };
+  }, [fetchConsents]);
 
   if (loading) {
     return (
       <div className="consent-management-container">
-        <div className="loading">Loading consents...</div>
+        <Loading message="Loading consents..." />
       </div>
     );
   }
@@ -182,9 +168,7 @@ const ConsentManagement = ({ account }) => {
       
       <div className="consents-list">
         {consents.length === 0 ? (
-          <div className="placeholder">
-            <p>No consents found</p>
-          </div>
+          <EmptyState message="No consents found" />
         ) : (
           consents.map((consent) => (
             <div key={consent.id} className="consent-card">
@@ -205,7 +189,7 @@ const ConsentManagement = ({ account }) => {
                 </div>
                 <div className="consent-detail-item">
                   <strong>Created:</strong>
-                  <span>{new Date(consent.createdAt).toLocaleString()}</span>
+                  <span>{formatDateTime(consent.createdAt)}</span>
                 </div>
                 {consent.blockchainTxHash && (
                   <div className="consent-detail-item">

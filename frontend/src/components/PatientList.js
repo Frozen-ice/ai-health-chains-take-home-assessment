@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './PatientList.css';
 import { apiService } from '../services/apiService';
+import { formatDate } from '../utils/formatters';
+import Loading from './common/Loading';
+import Error from './common/Error';
+import EmptyState from './common/EmptyState';
 
 const PatientList = ({ onSelectPatient }) => {
   const [patients, setPatients] = useState([]);
@@ -11,30 +15,21 @@ const PatientList = ({ onSelectPatient }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
 
-  // TODO: Implement the fetchPatients function
-  // This function should:
-  // 1. Call apiService.getPatients with appropriate parameters (page, limit, search)
-  // 2. Update the patients state with the response data
-  // 3. Update the pagination state
-  // 4. Handle loading and error states
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const limit = 10;
       const response = await apiService.getPatients(currentPage, limit, debouncedSearchTerm);
       
-      // Update patients state with response data
       setPatients(response.patients || []);
-      
-      // Update pagination state
       setPagination(response.pagination || null);
     } catch (err) {
       setError(err.message || 'Failed to fetch patients');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, debouncedSearchTerm]);
 
   // Debounce search term to avoid too many API calls
   useEffect(() => {
@@ -48,30 +43,28 @@ const PatientList = ({ onSelectPatient }) => {
 
   useEffect(() => {
     fetchPatients();
-  }, [currentPage, debouncedSearchTerm]);
+  }, [fetchPatients]);
 
-  // Handle search input changes
-  const handleSearch = (e) => {
+  const handleSearch = useCallback((e) => {
     setSearchTerm(e.target.value);
-  };
+  }, []);
 
-  // Handle pagination
-  const handlePreviousPage = () => {
+  const handlePreviousPage = useCallback(() => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
-  };
+  }, [currentPage]);
 
-  const handleNextPage = () => {
+  const handleNextPage = useCallback(() => {
     if (pagination && currentPage < pagination.totalPages) {
       setCurrentPage(currentPage + 1);
     }
-  };
+  }, [currentPage, pagination]);
 
   if (loading) {
     return (
       <div className="patient-list-container">
-        <div className="loading">Loading patients...</div>
+        <Loading message="Loading patients..." />
       </div>
     );
   }
@@ -79,7 +72,7 @@ const PatientList = ({ onSelectPatient }) => {
   if (error) {
     return (
       <div className="patient-list-container">
-        <div className="error">Error: {error}</div>
+        <Error message={error} onRetry={fetchPatients} />
       </div>
     );
   }
@@ -99,9 +92,7 @@ const PatientList = ({ onSelectPatient }) => {
 
       <div className="patient-list">
         {patients.length === 0 ? (
-          <div className="placeholder">
-            <p>No patients found</p>
-          </div>
+          <EmptyState message="No patients found" />
         ) : (
           patients.map((patient) => (
             <div
@@ -130,7 +121,7 @@ const PatientList = ({ onSelectPatient }) => {
                 </div>
                 <div className="patient-info-item">
                   <span>🎂</span>
-                  <span>{new Date(patient.dateOfBirth).toLocaleDateString()}</span>
+                  <span>{formatDate(patient.dateOfBirth)}</span>
                 </div>
               </div>
               <div className="patient-wallet">

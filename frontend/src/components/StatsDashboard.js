@@ -1,36 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './StatsDashboard.css';
 import { apiService } from '../services/apiService';
+import Loading from './common/Loading';
+import Error from './common/Error';
 
 const StatsDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Call apiService.getStats()
-        const statsData = await apiService.getStats();
-        
-        // Update stats state
-        setStats(statsData);
-      } catch (err) {
-        setError(err.message || 'Failed to fetch statistics');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
+  const fetchStats = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const statsData = await apiService.getStats();
+      setStats(statsData);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch statistics');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   if (loading) {
     return (
       <div className="stats-dashboard-container">
-        <div className="loading">Loading statistics...</div>
+        <Loading message="Loading statistics..." />
       </div>
     );
   }
@@ -38,7 +37,7 @@ const StatsDashboard = () => {
   if (error || !stats) {
     return (
       <div className="stats-dashboard-container">
-        <div className="error">Error loading statistics: {error || 'No data available'}</div>
+        <Error message={error || 'No data available'} onRetry={fetchStats} />
       </div>
     );
   }
