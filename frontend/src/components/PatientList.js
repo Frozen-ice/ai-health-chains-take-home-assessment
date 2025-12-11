@@ -7,6 +7,7 @@ const PatientList = ({ onSelectPatient }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
 
@@ -21,7 +22,7 @@ const PatientList = ({ onSelectPatient }) => {
     setError(null);
     try {
       const limit = 10;
-      const response = await apiService.getPatients(currentPage, limit, searchTerm);
+      const response = await apiService.getPatients(currentPage, limit, debouncedSearchTerm);
       
       // Update patients state with response data
       setPatients(response.patients || []);
@@ -35,14 +36,23 @@ const PatientList = ({ onSelectPatient }) => {
     }
   };
 
+  // Debounce search term to avoid too many API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1); // Reset to first page when searching
+    }, 500); // 500ms debounce delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   useEffect(() => {
     fetchPatients();
-  }, [currentPage, searchTerm]);
+  }, [currentPage, debouncedSearchTerm]);
 
-  // TODO: Implement search functionality
-  // Add a debounce or handle search input changes
+  // Handle search input changes
   const handleSearch = (e) => {
-    // Your implementation here
+    setSearchTerm(e.target.value);
   };
 
   if (loading) {
@@ -65,12 +75,12 @@ const PatientList = ({ onSelectPatient }) => {
     <div className="patient-list-container">
       <div className="patient-list-header">
         <h2>Patients</h2>
-        {/* TODO: Add search input field */}
         <input
           type="text"
           placeholder="Search patients..."
           className="search-input"
-          // TODO: Add value, onChange handlers
+          value={searchTerm}
+          onChange={handleSearch}
         />
       </div>
 
