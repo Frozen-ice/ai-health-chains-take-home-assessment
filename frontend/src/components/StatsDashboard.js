@@ -7,15 +7,18 @@ const StatsDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // TODO: Implement fetchStats function
   useEffect(() => {
     const fetchStats = async () => {
       setLoading(true);
+      setError(null);
       try {
-        // TODO: Call apiService.getStats()
-        // TODO: Update stats state
+        // Call apiService.getStats()
+        const statsData = await apiService.getStats();
+        
+        // Update stats state
+        setStats(statsData);
       } catch (err) {
-        setError(err.message);
+        setError(err.message || 'Failed to fetch statistics');
       } finally {
         setLoading(false);
       }
@@ -44,13 +47,41 @@ const StatsDashboard = () => {
     <div className="stats-dashboard-container">
       <h2>Platform Statistics</h2>
       
-      {/* TODO: Display statistics in a nice grid layout */}
-      {/* Show: totalPatients, totalRecords, totalConsents, activeConsents, pendingConsents, totalTransactions */}
       <div className="stats-grid">
-        {/* Your implementation here */}
-        <div className="placeholder">
-          <p>Statistics will be displayed here</p>
-          <p>Implement the statistics dashboard</p>
+        <div className="stat-card primary">
+          <div className="stat-label">Total Patients</div>
+          <div className="stat-value">{stats.totalPatients}</div>
+          <div className="stat-description">Registered patients in the system</div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-label">Total Records</div>
+          <div className="stat-value">{stats.totalRecords}</div>
+          <div className="stat-description">Medical records stored</div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-label">Total Consents</div>
+          <div className="stat-value">{stats.totalConsents}</div>
+          <div className="stat-description">All consent records</div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-label">Active Consents</div>
+          <div className="stat-value">{stats.activeConsents}</div>
+          <div className="stat-description">Currently active consents</div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-label">Pending Consents</div>
+          <div className="stat-value">{stats.pendingConsents}</div>
+          <div className="stat-description">Awaiting activation</div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-label">Total Transactions</div>
+          <div className="stat-value">{stats.totalTransactions}</div>
+          <div className="stat-description">Blockchain transactions</div>
         </div>
       </div>
     </div>
