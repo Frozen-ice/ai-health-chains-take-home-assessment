@@ -84,15 +84,48 @@ const PatientList = ({ onSelectPatient }) => {
         />
       </div>
 
-      {/* TODO: Implement patient list display */}
-      {/* Map through patients and display them */}
-      {/* Each patient should be clickable and call onSelectPatient with patient.id */}
       <div className="patient-list">
-        {/* Your implementation here */}
-        <div className="placeholder">
-          <p>Patient list will be displayed here</p>
-          <p>Implement the patient list rendering</p>
-        </div>
+        {patients.length === 0 ? (
+          <div className="placeholder">
+            <p>No patients found</p>
+          </div>
+        ) : (
+          patients.map((patient) => (
+            <div
+              key={patient.id}
+              className="patient-card"
+              onClick={() => onSelectPatient(patient.id)}
+            >
+              <div className="patient-card-header">
+                <div>
+                  <div className="patient-name">{patient.name}</div>
+                  <div className="patient-id">{patient.patientId}</div>
+                </div>
+              </div>
+              <div className="patient-info">
+                <div className="patient-info-item">
+                  <span>📧</span>
+                  <span>{patient.email}</span>
+                </div>
+                <div className="patient-info-item">
+                  <span>📞</span>
+                  <span>{patient.phone}</span>
+                </div>
+                <div className="patient-info-item">
+                  <span>👤</span>
+                  <span>{patient.gender}</span>
+                </div>
+                <div className="patient-info-item">
+                  <span>🎂</span>
+                  <span>{new Date(patient.dateOfBirth).toLocaleDateString()}</span>
+                </div>
+              </div>
+              <div className="patient-wallet">
+                {patient.walletAddress}
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* TODO: Implement pagination controls */}
